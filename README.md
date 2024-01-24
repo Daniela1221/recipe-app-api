@@ -1,5 +1,5 @@
 # Paso a paso
-# Settiando el proyecto
+# 1. Project SetUp
 
 En GitHub, se configuran los secretos del repositorio, se añade uno para el usuario de DockerHub, y luego se añade otro secreto con el Token creado en DockerHub.
 
@@ -52,3 +52,14 @@ Para visualizar el proyecto en el navegador con docker corremos el comando
 
 **docker-compose up**
 
+
+# 2. Configure GitHub Actions
+
+Se crea la carpeta .github a la altura de app. Dentro de esta creamos otra carpeta workflows, y aquí creamos el archivo check.yml . Una vez realizado, se corre el comando por consola:
+
+**docker-compose run --rm app sh -c "python manage.py test"**
+
+En Docker Hub generamos un token de acceso, al cual le ponemos el nombre del proyecto. Guardamos la pestaña que nos da el token y vamos a GitHub, donde añadimos dos secretos al repositorio:
+
+DOCKERHUB_USER : se pone el nombre de la cuenta de Docker HUb.
+DOCKERHUB_TOKEN : se copia el token proporcinado por Docker Gub y lo ponemos en este campo.
