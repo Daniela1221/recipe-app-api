@@ -48,15 +48,7 @@ Procedemos a crear el proyecto Django con la línea de código siguiente
 
 **docker-compose run --rm app sh -c "django-admin startproject app ."**
 
-Para visualizar el proyecto en el navegador corremos el comando
+Para visualizar el proyecto en el navegador con docker corremos el comando
 
 **docker-compose up**
 
-
-
-
-**`docker-compose run --rm app sh -c "python manage.py flake8"`**
-
-
-
-**`docker-compose run --rm app sh -c "python manage.py test"`**
