@@ -152,3 +152,39 @@ Ahora guardamos los cambios en docker escribiendo las siguientes líneas de coma
 
 **docker-compose down**
 **docker-compose build**
+
+Ahora, en settings.py registramos la nueva base de datos instalada, en el apartado de DATABASE, quedando de la siguiente forma:
+
+`DATABASES = {`
+`    'default': {`
+`        'ENGINE': 'django.db.backends.postgresql',`
+`        'HOST': os.environ.get('DB_HOST'),`
+`        'NAME': os.environ.get('DB_NAME'),`
+`        'USER': os.environ.get('DB_USER'),`
+`        'PASSWORD': os.environ.get('DB_PASS'),`
+`    }`
+`}`
+
+Y borramos la base de datos proporcinada por Django de sqlite3.
+
+Creamos otra app llamada "core" con el comando:
+
+**docker-compose run --rm app sh -c "python manage.py startapp core"**
+
+Borramos los archivos views.py y tests.py de la aplicación core, para luego crear la carpeta tests y dentro de ella creamos el archivo __init__.py . Por último regitramos la nueva aplicación en setings.py
+
+Creamos la carpeta management > commands donde cada una tiene el archivo __init__.py y dentro de commands creamos el archivo wait_for_db.py con el fin de crear una función que haga  Django esperar a que la base de datos se cargue, ya que esta tiene un delay tras ocupar Docker.
+
+Luego implementamos una prueba en la carpeta test para comprobar que el comando hace lo que esperamos.
+
+Una vez lista la prueba, corremos el comando en la cmd:
+
+**docker-compose run --rm app sh -c "python manage.py test"**
+
+Probamos directamente el comando creado en la cmd:
+
+**docker-compose run --rm app sh -c "python manage.py wait_for_db"**
+
+Luego corroboramos que el linting (manejo de errores) esté funcionando correctamente.
+
+**docker-compose run --rm app sh -c "python manage.py test && flake8"**
