@@ -188,3 +188,22 @@ Probamos directamente el comando creado en la cmd:
 Luego corroboramos que el linting (manejo de errores) esté funcionando correctamente.
 
 **docker-compose run --rm app sh -c "python manage.py test && flake8"**
+
+Para ir finalizando la sección, modificamos el docker-compose.yml en la linea de comando que se encuentra asociada al apartado "command", de la siguiente forma:
+
+`    command: >`
+`      sh -c "python manage.py wait_for_db &&`
+`             python manage.py migrate &&`
+`             python manage.py runserver 0.0.0.0:8000"`
+
+Y se modifica el archivo checks.yml en el apartado "name: Test", quedando de la siguiente forma:
+
+`      - name: Test`
+`        run: docker-compose run --rm app sh -c "python manage.py wait_for_db && python manage.py test"`
+
+Finalizando con actualizando los cambios en docker:
+
+**docker-compose down**
+
+**docker-compose up**
+
