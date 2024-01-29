@@ -207,3 +207,153 @@ Finalizando con actualizando los cambios en docker:
 
 **docker-compose up**
 
+
+# 5. Create User Model
+
+Se crea una prueba para probar la implementación de un modelo usuario en la app core.
+
+Ahora se crea el modelo usuario en models.py, y se registra en settings.py al final del código, aplicando la variable siguiente:
+
+**AUTH_USER_MODEL = 'core.User'**
+
+Luego se corren las migraciones:
+
+**docker-compose run --rm app -sh c "python manage.py makemigrations**
+
+**docker-compose run --rm app -sh c "python manage.py wait_for_db && python manage.py migrate**
+
+Al existir previamente la base de datos, arrojará un error así que buscamos la base de datos con el comando:
+
+**docker volume ls**
+
+Y el último agregado será nuestra base de datos, entonces:
+
+**docker volume rm nombre_base_datos**
+
+**docker-compose down**
+
+Podemos corroborar que se ha removido, volviendo a ejecutar:
+
+**docker volume ls**
+
+Se vuelven a correr las migraciones y se prueban las test:
+
+**docker-compose run --rm app sh -c "python manage.py wait_for_db && python manage.py migrate"**
+
+**docker-compose run --rm app sh -c "python manage.py test"**
+
+A continuación se crea una prueba para normalizar el email, de tal forma que no importa si tiene matúsculas o no, lo acepte igual.
+Luego se modifica el archivo models.py, en la clase UserManager, dentro del método create_user, cambios:
+
+**user = self.model(email=email, **extra_field)**
+
+Por:
+
+**user = self.model(email=self.normalize_email(email), **extra_field)**
+
+Hacemos correr las pruebas para ver si la implementación es correcta con:
+
+**docker-compose run --rm app sh -c "python manage.py test"**
+
+Ahora hacemos que la variable email sea obligatoria para todos los usuarios, y si no tiene este campo, se levante un error.
+Primero se genera una test, y luego en models.py se crea una línea por sobre `user = self.model(email=self.normalize_email(email), **extra_field)`, añadiendo:
+
+`        if not email:`
+`            raise ValueError('User must have an email address.')`
+
+Luego corremos las pruebas para corroborar la implementación.
+
+Ahora, se creará un super user, de lo cual se genera una test y luego dentro del modelos UserManager, debajo del método crete_user, se agrega el método create_superuser de la siguiente forma:
+
+`    def create_superuser(self, email, password):`
+`        """Create and return a new superuser."""`
+`        user = self.create_user(email, password)`
+`        user.is_staff = True`
+`       user.is_superuser = True`
+`        user.save(using=self._db)`
+` `
+`        return user`
+
+Para finalizar esta sección, aplicamos los cambios en docker
+
+**docker-compose up**
+
+Podemos ver que el servidor corre correctamente y arroja la página de admin login.
+Para agregar el admin, corremos el siguiente comando:
+
+**docker-compose run --rm app sh -c "python manage.py createsuperuser**
+
+Los datos ocupados para admin son:
+
+- email: admin@example.com
+- pass: 1234
+
+
+# 6. SetUp Django Admin
+
+Se crea una test y se implementa con el comando `docker-compose run --rm app sh -c "python manage.py test"`.
+
+En admin.py se importa el modelo User y además se crea una clase UserAdmin para ordenar el contenido del admin de Django. 
+
+`from django.contrib import admin`
+`from django.contrib.auth.admin import UserAdmin as BaseUserAdmin`
+`from django.utils.translation import gettext_lazy as _`
+` `
+`from core import models`
+` `
+` `
+`class UserAdmin(BaseUserAdmin):`
+`    """Define the admin pages for users."""`
+`    ordering = ['id']`
+`    list_display = ['email', 'name']`
+
+Luego se registra el modelo User y al clase UserAdmin. Se comprueban los cambios con el siguiente comando:
+
+**docker-compose up**
+
+Se vuelve a modificar en admin.py para que el admin de Django lea y no detecte que faltan parámetros por definir, y setearlo de la forma que queremos. Para esto, dentro de la clase UserAdmin, debajo de la línea de código `list_display = ['email', 'name']`, agregamos:
+
+`    fieldsets = (`
+`        (None, {'fields': ('email', 'password')}),`
+`        (`
+`            _('Permissions'),`
+`            {`
+`                'fields': (`
+`                    'is_active',`
+`                    'is_staff',`
+`                    'is_superuser',`
+`                )`
+`            }`
+`        ),`
+`        (_('Important dates'), {'fields': ('last_login',)}),`
+`    )`
+`    readonly_fields = ['last_login']`
+
+Y volvemos a montar el servidor (con esta modificación, se deja de tener errores en tests_admin).
+
+**docker-compose up**
+
+Para finalizar la sección, se configura la creación de usuarios desde el admin de Django.
+En admin.py, en la clase UserAdmin, debajo de la línea de código `readonly_fields = ['last_login']`, se agrega lo siguiente:
+
+`    add_fieldsets = (`
+`        (None, {`
+`            'classes': ('wide',),`
+`            'fields': (`
+`                'email',`
+`                'password1',`
+`                'password2',`
+`                'name',`
+`                'is_active',`
+`                'is_staff',`
+`                'is_superuser',`
+`            )`
+`        }),`
+`    )`
+
+Y montamos el servidor:
+
+**docker-compose up**
+
+
+# 7. API Documentation
