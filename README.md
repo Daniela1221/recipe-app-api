@@ -357,3 +357,40 @@ Y montamos el servidor:
 
 
 # 7. API Documentation
+
+Se va documentar de forma automática mediante una librería de Django Rest Framework, la cual es django rest framework spectacular. 
+
+Abriremos requirements.txt y agregaremos la siguiente línea de código:
+
+**drf-spectacular>=0.15.1,<0.16**
+
+Luego volveremos a montar docker:
+
+**docker-compose build**
+
+E inscribimos la app en settings.py como `drf-spectacular` y `rest_framework`. Además, al final del archivo incluimos:
+
+`REST_FRAMEWORK = {`
+`    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',`
+`}`
+
+En urls.py de la app, inscribimos la librería de spectacular, entonces agregamos un nuevo import: 
+
+`from drf_spectacular.views import (`
+`    SpectacularAPIView,`
+`    SpectacularSwaggerView,`
+`)`
+
+Y se añaden dos paths:
+
+`    path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),`
+`    path('api/docs/', SpectacularSwaggerView.as_view(url_name='api-schema'),name='api-docs'),`
+
+Levantamos el server de docker:
+
+**docker-compose up**
+
+Y podemos ver la interacción en `http://localhost:8000/api/docs/`.
+
+
+# 8. Build User API
