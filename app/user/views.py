@@ -1,5 +1,5 @@
 """
-Views for the user api.
+Views for the user API.
 """
 from rest_framework import generics
 
