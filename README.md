@@ -394,3 +394,14 @@ Y podemos ver la interacción en `http://localhost:8000/api/docs/`.
 
 
 # 8. Build User API
+
+Creamos una app que maneje los usuarios de la api, por ende corremos el comando:
+
+**docker-compose run --rm app sh -c "python manage.py startapp user**
+
+Creamos la carpera tests con su archivo __init__.py dentro, y borramos los archivos models.py, admin.py, tests.py y la carpeta migrations.
+
+Registramos la app creada en INSTALLED_APPS en settings.py
+
+Se implementan pruebas para la creación de usuarios con sus respectivas condicionales.
+
