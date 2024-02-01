@@ -368,7 +368,7 @@ Luego volveremos a montar docker:
 
 **docker-compose build**
 
-E inscribimos la app en settings.py como `drf-spectacular` y `rest_framework`. Además, al final del archivo incluimos:
+E inscribimos la app en settings.py como `drf_spectacular` y `rest_framework`. Además, al final del archivo incluimos:
 
 `REST_FRAMEWORK = {`
 `    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',`
@@ -404,4 +404,147 @@ Creamos la carpera tests con su archivo __init__.py dentro, y borramos los archi
 Registramos la app creada en INSTALLED_APPS en settings.py
 
 Se implementan pruebas para la creación de usuarios con sus respectivas condicionales.
+Luego se implementa la creación de usuarios, mediante los archivos serializers.py, views.py y urls.py de la app user.
 
+serializer.py contiene:
+
+`from django.contrib.auth import get_user_model`
+` `
+`from rest_framework import serializers`
+` `
+` `
+`class UserSerializer(serializers.ModelSerializer):`
+`    """Serializer for the user object."""`
+` `
+`    class Meta:`
+`        model = get_user_model()`
+`        fields = ['email', 'password', 'name']`
+`        extra_kwargs = {'password': {'write_only': True, 'min_length': 5}}`
+` `
+`    def create(self, validated_data):`
+`        """Create and return a user with encrypted password."""`
+`        return get_user_model().objects.create_user(**validated_data)`
+
+views.py contiene:
+
+`from rest_framework import generics`
+` `
+`from user.serializers import UserSerializer`
+` `
+` `
+`class CreateUserView(generics.CreateAPIView):`
+`    """Create a new user in the system."""`
+`    serializer_class = UserSerializer`
+
+urls.py contiene:
+
+`from django.urls import path`
+` `
+`from user import views`
+` `
+` `
+`app_name = 'user'`
+` `
+`urlpatterns = [`
+`    path('create/', views.CreateUserView.as_view(), name='create'),`
+`]`
+
+Y se inscribe la urls de la app users en app.urls.py. 
+Se corren las pruebas para verificar que todo esté en orden.
+
+Ahora se implementan pruebas para el sistema de autentificación del token.
+Para implementarlo, añadimos lo siguiente en user.serializers.py :
+
+- Agregamos el siguiente import:
+
+`from django.contrib.auth import (`
+`    get_user_model,`
+`    authenticate,`
+`)`
+`from django.utils.translation import gettext as _`
+
+- Agregamos debajo de la clase UserSerializer lo siguiente:
+
+`class AuthTokenSerializer(serializers.Serializer):`
+`    """Serializer for the user auth token."""`
+`    email = serializers.EmailField()`
+`    password = serializers.CharField(`
+`        style={'input_type': 'password'},`
+`        trim_whitespace=False,`
+`    )`
+` `
+`    def validate(self,attrs):`
+`        """Validate and authenticate de user."""`
+`        email = attrs.get('email')`
+`        password = attrs.get('password')`
+`        user = authenticate(`
+`            request=self.context.get('request'),`
+`            username=email,`
+`            password=password,`
+`        )`
+`        if not user:`
+`            msg = _('Unable to authenticate with provided credentials.')`
+`            raise serializers.ValidationError(msg, code='authorization')`
+` `        
+`        attrs['user'] = user`
+`        return attrs`
+
+En user.views.py se agrega lo siguiente:
+
+- En los import se agregan los siguientes:
+
+`from rest_framework.authtoken.views import ObtainAuthToken`
+`from rest_framework.settings import api_settings`
+` `
+`from user.serializers import (`
+`    UserSerializer,`
+`    AuthTokenSerializer,`
+`)`
+
+- Debajo de la clase CreateUserView, implementamos la siguiente clase:
+
+`class CreateTokenView(ObtainAuthToken):`
+`    """Create a new auth token for user."""`
+`    serializer_class = AuthTokenSerializer`
+`    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES`
+
+En user.urls.py agregamos el path:
+
+`path('token/',views.CreateTokenView.as_view(), name='token'),`
+
+Por último se corren las tests para verificar que todo fue implementado correctamente.
+
+Luego se crean tests para corroborar que se realizó correctamente la autentificación.
+Para implementarlo, agregamos a continuación en los siguientes archivos:
+
+En user.serializers.py, incluimos un método al final de la clase UserSerializer:
+
+`    def update(self, instance, validated_data):`
+`        """Update and return user."""`
+`        password = validated_data.pop('password', None)`
+`        user = super().update(instance, validated_data)`
+` `
+`        if password:`
+`            user.set_password(password)`
+`            user.save()`
+` `
+`        return user`
+
+En user.views.py agregamos al final del archivo, la siguiente clase:
+
+`class ManageUserView(generics.RetrieveUpdateAPIView):`
+`    """Manage the authenticated user."""`
+`    serializer_class = UserSerializer`
+`    authentication_classes = [authentication.TokenAuthentication]`
+`    permission_classes = [permissions.IsAuthenticated]`
+` `
+`    def get_object(self):`
+`        """Retrieve and return the authenticated user."""`
+`        return self.request.user`
+
+En user.urls.py agregamos el siguiente path:
+
+`path('me/', views.ManageUserView.as_view(), name='me'),`
+
+Hacemos correr las tests para corroborar que todo fue implementado correctamente y estaría habiitado.
+También se puede testear con parámetros desde 'http://localhost:8000/api/docs'.
